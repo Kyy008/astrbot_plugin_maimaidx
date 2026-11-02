@@ -42,8 +42,9 @@ async def best50_handler(
     achievement_mode: str | None = None,
     difficulty_index: int | None = None,
     all_songs: bool = False,
+    ideal: bool = False,
 ):
-    """普通、筛选及全曲 B50 命令处理。"""
+    """普通、筛选、理想及全曲 B50 命令处理。"""
     # 检查数据是否加载
     if not hasattr(mai, 'total_list') or not mai.total_list:
         yield event.plain_result('歌曲数据未加载，请稍后再试或联系管理员')
@@ -85,6 +86,10 @@ async def best50_handler(
             cleaned = re.sub(
                 r'^/?(?i:拟合b50|f50)', '', message_str.strip()
             )
+        elif ideal:
+            cleaned = re.sub(
+                r'^/?(?i:理想b50|i50)', '', message_str.strip()
+            )
         elif min_dx_star is not None:
             cleaned = re.sub(
                 r'^/?[一二三四五]星(?i:b50)', '', message_str.strip()
@@ -108,6 +113,7 @@ async def best50_handler(
         achievement_mode=achievement_mode,
         difficulty_index=difficulty_index,
         all_songs=all_songs,
+        ideal=ideal,
     )
     chain: List[Any] = convert_message_segment_to_chain(result)
     append_theme_source_tip(chain, result)

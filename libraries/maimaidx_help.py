@@ -68,6 +68,7 @@ HELP_COLUMNS = (
             HelpEntry(('ap_plus50',), 'ap+50 / 理论b50 [玩家]', '仅统计实际AP+成绩。'),
             HelpEntry(('dx_star_best50',), '一星b50～五星b50 [玩家]', '按最低DX SCORE星级筛选。', prefix=True),
             HelpEntry(('fitted_best50',), '拟合b50 / f50 [玩家]', '按拟合定数重新计算Rating。'),
+            HelpEntry(('ideal_best50',), '理想b50 / i50 [玩家]', '假设每个已有成绩推分至下一评价后重新计算。'),
             HelpEntry(('under_s_best50',), '越级50 / a50 [玩家]', '筛选达成率低于97%的成绩。'),
             HelpEntry(('near_best50',), '寸50 / c50 [玩家]', '筛选略低于SSS或SSS+的成绩。'),
             HelpEntry(('lock_best50',), '锁血50 / s50 [玩家]', '筛选略高于SSS或SSS+的成绩。'),

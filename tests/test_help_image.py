@@ -157,6 +157,7 @@ class HelpCatalogueTest(unittest.TestCase):
             ('arcade_query_person', '某机厅几人'), ('arcade_query_multiple', '机厅几人'), ('toggle_arcade', '开启排卡'),
             ('all_songs_best50', '全曲b50'), ('dx_star_best50', '五星b50'),
             ('ap_plus50', '理论b50'), ('fitted_best50', '拟合b50'),
+            ('ideal_best50', '理想b50'), ('ideal_best50', 'i50'),
         )
         for handler, example in examples:
             with self.subTest(handler=handler, example=example):
