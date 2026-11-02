@@ -306,7 +306,7 @@ class DrawBest(ScoreBaseImage):
         achievement_mode: Optional[str] = None,
         difficulty_index: Optional[int] = None,
         all_songs: bool = False,
-        ideal: bool = False,
+        version: Optional[str] = None,
         player=None,
         service: ServiceName = ServiceName.DIVINGFISH,
     ) -> None:
@@ -326,7 +326,7 @@ class DrawBest(ScoreBaseImage):
         self.achievement_mode = achievement_mode
         self.difficulty_index = difficulty_index
         self.all_songs = all_songs
-        self.ideal = ideal
+        self.version = version
         self.player = player
         self.service = service
 
@@ -344,7 +344,7 @@ class DrawBest(ScoreBaseImage):
         achievement_mode: Optional[str] = None,
         difficulty_index: Optional[int] = None,
         all_songs: bool = False,
-        ideal: bool = False,
+        version: Optional[str] = None,
         service: ServiceName = ServiceName.DIVINGFISH,
     ) -> 'DrawBest':
         """从统一 Player + Best50 构建绘图对象。"""
@@ -361,7 +361,7 @@ class DrawBest(ScoreBaseImage):
             achievement_mode=achievement_mode,
             difficulty_index=difficulty_index,
             all_songs=all_songs,
-            ideal=ideal,
+            version=version,
             player=player,
             service=service,
         )
@@ -500,26 +500,9 @@ class DrawBest(ScoreBaseImage):
             summary_drawer = self._sy
             summary_size = 14
         else:
-            summary = format_best50_summary(
-                sdrating,
-                dxrating,
-                self.Rating,
-                all_perfect=self.all_perfect,
-                min_dx_star=self.min_dx_star,
-                fitted=self.fitted,
-                all_perfect_plus=self.all_perfect_plus,
-                achievement_mode=self.achievement_mode,
-                difficulty_index=self.difficulty_index,
-                all_songs=self.all_songs,
-                ideal=self.ideal,
-            )
+            summary = format_best50_summary(sdrating, dxrating, self.Rating)
             rating_path = shougou_dir / 'UI_CMN_Shougou_Rainbow.png'
-            # Torus 不包含中文字形；仅在汇总中出现中文标签时切换中文字体。
-            summary_drawer = (
-                self._sy
-                if any('\u4e00' <= char <= '\u9fff' for char in summary)
-                else self._tb
-            )
+            summary_drawer = self._tb
             summary_size = 17
         if not rating_path.exists():
             rating_path = maimaidir / 'UI_CMN_Shougou_Rainbow.png'
@@ -536,7 +519,7 @@ class DrawBest(ScoreBaseImage):
             self.text_color, 'mm', 5, (255, 255, 255, 255)
         )
 
-        if self.all_songs:
+        if self.all_songs or self.version is not None:
             await self.whiledraw(self.sdBest + self.dxBest, True)
         else:
             await self.whiledraw(self.sdBest, True)
@@ -549,47 +532,10 @@ def format_best50_summary(
     old_rating: int,
     new_rating: int,
     total_rating: int,
-    *,
-    all_perfect: bool = False,
-    min_dx_star: Optional[int] = None,
-    fitted: bool = False,
-    all_perfect_plus: bool = False,
-    achievement_mode: Optional[str] = None,
-    difficulty_index: Optional[int] = None,
-    all_songs: bool = False,
-    ideal: bool = False,
 ) -> str:
-    """生成普通或筛选模式 B50 图片顶部的 Rating 汇总文字。"""
-    if all_songs:
-        return f'(全曲)B50: {total_rating}'
-    if all_perfect:
-        label = '(ap)'
-    elif all_perfect_plus:
-        label = '(ap+)'
-    elif fitted:
-        label = '(拟合)'
-    elif ideal:
-        label = '(理想)'
-    elif min_dx_star is not None:
-        label = f'({min_dx_star}星)'
-    elif achievement_mode is not None:
-        labels = {
-            'under_s': '(越级)',
-            'near': '(寸)',
-            'lock': '(锁血)',
-        }
-        if achievement_mode not in labels:
-            raise ValueError(f'未知的达成率筛选模式：{achievement_mode}')
-        label = labels[achievement_mode]
-    elif difficulty_index is not None:
-        labels = ('绿谱', '黄谱', '红谱', '紫谱', '白谱')
-        if not 0 <= difficulty_index < len(labels):
-            raise ValueError('谱面难度索引必须在 0 到 4 之间')
-        label = f'({labels[difficulty_index]})'
-    else:
-        label = ''
+    """生成 B50 图片顶部的 Rating 汇总文字，各类查分表统一格式。"""
     return (
-        f'{label}B35: {old_rating} + '
+        f'B35: {old_rating} + '
         f'B15: {new_rating} = {total_rating}'
     )
 
@@ -745,6 +691,8 @@ async def generate(
     difficulty_index: Optional[int] = None,
     all_songs: bool = False,
     ideal: bool = False,
+    genre: Optional[str] = None,
+    version: Optional[str] = None,
 ) -> Union[MessageSegment, str]:
     """
     生成b50
@@ -760,6 +708,8 @@ async def generate(
         `difficulty_index`: 谱面难度索引（0～4）
         `all_songs`: 是否忽略新旧曲分类并选取 Rating 最高的 50 项
         `ideal`: 是否将玩家每个已有成绩提升一个评价档位
+        `genre`: 曲目分类名，只统计该分类的成绩
+        `version`: 版本字（可连续多个取并集），只统计这些版本的成绩
     Returns:
         `Union[MessageSegment, str]`
     """
@@ -784,6 +734,8 @@ async def generate(
             difficulty_index=difficulty_index,
             all_songs=all_songs,
             ideal=ideal,
+            genre=genre,
+            version=version,
         )
         service = get_service(qqid, username)
         draw_best = DrawBest.from_best50(
@@ -798,7 +750,7 @@ async def generate(
             achievement_mode=achievement_mode,
             difficulty_index=difficulty_index,
             all_songs=all_songs,
-            ideal=ideal,
+            version=version,
             service=service,
         )
 

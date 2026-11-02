@@ -763,6 +763,35 @@ class MaimaiDXPlugin(Star):
         async for result in best50_handler(event, ideal=True):
             yield result
 
+    @filter.regex(r'^/?(?i:(音击中二|舞萌|maimai|vocaloid|v家|术力口|ボカロ|niconico|东方|车万|流行|动漫|二次元|音击|中二|其他游戏|variety)b?50)(?![0-9])\s*(.*)$')
+    async def genre_best50(self, event: AstrMessageEvent):
+        """东方50/v家b50 等：按曲目分类筛选 Best 50"""
+        group_id = event.message_obj.group_id
+        if group_id and not self._is_group_enabled(str(group_id)):
+            return
+        from . import B50_GENRE_ALIASES
+        from .command.mai_score import GENRE_B50_COMMAND_PATTERN, best50_handler
+        match = re.match(GENRE_B50_COMMAND_PATTERN, get_plain_message_text(event))
+        if not match:
+            return
+        async for result in best50_handler(
+            event, genre=B50_GENRE_ALIASES[match.group(1).lower()]
+        ):
+            yield result
+
+    @filter.regex(r'^/?([真超檄橙晓暁桃樱櫻紫堇菫白雪辉輝舞熊华華爽煌宙星祭祝双宴镜彩]+)代?(?i:b)?50(?![0-9])\s*(.*)$')
+    async def version_best50(self, event: AstrMessageEvent):
+        """辉50/白代50/真超檄50 等：按版本筛选 Best 50，多个版本取并集"""
+        group_id = event.message_obj.group_id
+        if group_id and not self._is_group_enabled(str(group_id)):
+            return
+        from .command.mai_score import VERSION_B50_COMMAND_PATTERN, best50_handler
+        match = re.match(VERSION_B50_COMMAND_PATTERN, get_plain_message_text(event))
+        if not match:
+            return
+        async for result in best50_handler(event, version=match.group(1)):
+            yield result
+
     @filter.regex(r'^/?(?i:ap\+50|理论b50)\s*(.*)$')
     async def ap_plus50(self, event: AstrMessageEvent):
         """ap+50/理论b50：查询玩家实际 AP+ Best 50"""

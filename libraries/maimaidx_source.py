@@ -82,8 +82,10 @@ async def get_best50(
     difficulty_index: Optional[int] = None,
     all_songs: bool = False,
     ideal: bool = False,
+    genre: Optional[str] = None,
+    version: Optional[str] = None,
 ) -> Tuple[Player, Best50]:
-    """按用户数据源获取普通、筛选、理想或不分版本的全曲 B50。"""
+    """按用户数据源获取普通、筛选、理想、分类、版本或不分版本的全曲 B50。"""
     if sum(
         (
             all_perfect,
@@ -94,16 +96,19 @@ async def get_best50(
             difficulty_index is not None,
             all_songs,
             ideal,
+            genre is not None,
+            version is not None,
         )
     ) > 1:
         raise ValueError(
-            'AP50、AP+50、DX 星级、拟合、理想、达成率、谱面难度与全曲 B50 '
-            '不能同时启用'
+            'AP50、AP+50、DX 星级、拟合、理想、达成率、谱面难度、分类、版本'
+            '与全曲 B50 不能同时启用'
         )
     if min_dx_star is not None and not 1 <= min_dx_star <= 5:
         raise ValueError('DX 星级必须在 1 到 5 之间')
     if difficulty_index is not None and not 0 <= difficulty_index <= 4:
         raise ValueError('谱面难度索引必须在 0 到 4 之间')
+    versions = resolve_b50_versions(version) if version is not None else None
 
     if all_songs:
         if is_lxns(qqid, username):
@@ -163,6 +168,33 @@ async def get_best50(
             _fitted_level_value,
             _rating_for_level_value,
         )
+    elif genre is not None:
+        if is_lxns(qqid, username):
+            player, _ = await _lxns_best50_raw(qqid, all_perfect=False)
+            records = await _lxns_records_raw(qqid, exact=False)
+        else:
+            player, records = await _divingfish_dev_records_raw(
+                qqid=qqid, username=username
+            )
+        best50 = select_genre_b50_records(
+            records,
+            genre,
+            _is_new_song,
+            _genre_for_song,
+        )
+    elif versions is not None:
+        if is_lxns(qqid, username):
+            player, _ = await _lxns_best50_raw(qqid, all_perfect=False)
+            records = await _lxns_records_raw(qqid, exact=False)
+        else:
+            player, records = await _divingfish_dev_records_raw(
+                qqid=qqid, username=username
+            )
+        best50 = select_version_b50_records(
+            records,
+            versions,
+            _version_for_song,
+        )
     elif ideal:
         if is_lxns(qqid, username):
             player, _ = await _lxns_best50_raw(qqid, all_perfect=False)
@@ -208,6 +240,8 @@ async def get_best50(
         or min_dx_star is not None
         or fitted
         or ideal
+        or genre is not None
+        or version is not None
         or achievement_mode is not None
         or difficulty_index is not None
         or all_songs
@@ -237,6 +271,72 @@ def select_all_songs_b50_records(records: List[PlayedResult]) -> Best50:
         dx_total=sum(record.rating for record in last15),
         sd=first35,
         dx=last15,
+    )
+
+
+def resolve_b50_versions(token: str) -> List[str]:
+    """将版本字（可连续多个）解析为曲库版本名列表，多个版本取并集。"""
+    from .. import B50_VERSION_CHARS, platecn, version_map
+
+    versions: List[str] = []
+    for char in token:
+        if char not in B50_VERSION_CHARS:
+            raise ValueError(f'未知的版本：{char}')
+        for name in version_map[platecn.get(char, char)][0]:
+            if name not in versions:
+                versions.append(name)
+    if not versions:
+        raise ValueError('版本不能为空')
+    return versions
+
+
+def select_genre_b50_records(
+    records: List[PlayedResult],
+    genre: str,
+    is_new_song: Callable[[int], Optional[bool]],
+    genre_of: Callable[[int], Optional[str]],
+) -> Best50:
+    """按曲目分类筛选完整成绩，再选出旧曲 35 与新曲 15。"""
+    old_records: List[PlayedResult] = []
+    new_records: List[PlayedResult] = []
+    for record in records:
+        if record.song_id >= 100000 or genre_of(record.song_id) != genre:
+            continue
+        is_new = is_new_song(record.song_id)
+        if is_new is None:
+            continue
+        (new_records if is_new else old_records).append(record)
+
+    sort_key = lambda r: (
+        r.rating,
+        r.achievements,
+        r.level_value,
+        r.song_id,
+        r.level_index,
+    )
+    b35 = sorted(old_records, key=sort_key, reverse=True)[:35]
+    b15 = sorted(new_records, key=sort_key, reverse=True)[:15]
+    return Best50(
+        sd_total=sum(record.rating for record in b35),
+        dx_total=sum(record.rating for record in b15),
+        sd=b35,
+        dx=b15,
+    )
+
+
+def select_version_b50_records(
+    records: List[PlayedResult],
+    versions: List[str],
+    version_of: Callable[[int], Optional[str]],
+) -> Best50:
+    """按曲目版本筛选完整成绩，不分新旧曲选出 Rating 最高的 50 个。"""
+    allowed = set(versions)
+    return select_all_songs_b50_records(
+        [
+            record
+            for record in records
+            if record.song_id < 100000 and version_of(record.song_id) in allowed
+        ]
     )
 
 
@@ -559,6 +659,16 @@ def _is_new_song(song_id: int) -> Optional[bool]:
     return song.isnew if song else None
 
 
+def _genre_for_song(song_id: int) -> Optional[str]:
+    song = mai.get_song(song_id)
+    return song.genre if song else None
+
+
+def _version_for_song(song_id: int) -> Optional[str]:
+    song = mai.get_song(song_id)
+    return song.version_str if song else None
+
+
 def _dx_star_for_record(record: PlayedResult) -> Optional[int]:
     """取得成绩的 DX SCORE 星级；水鱼成绩按谱面物量计算。"""
     if record.dx_star is not None and (
@@ -669,6 +779,8 @@ async def get_player_b50_userinfo(
     difficulty_index: Optional[int] = None,
     all_songs: bool = False,
     ideal: bool = False,
+    genre: Optional[str] = None,
+    version: Optional[str] = None,
 ) -> UserInfo:
     """统一取 b50 并转为 UserInfo，供现有绘图直接使用。"""
     player, best50 = await get_best50(
@@ -682,6 +794,8 @@ async def get_player_b50_userinfo(
         difficulty_index=difficulty_index,
         all_songs=all_songs,
         ideal=ideal,
+        genre=genre,
+        version=version,
     )
     return best50_to_userinfo(player, best50)
 
@@ -853,6 +967,9 @@ __all__ = [
     'select_star_b50_records',
     'select_fitted_b50_records',
     'select_ideal_b50_records',
+    'resolve_b50_versions',
+    'select_genre_b50_records',
+    'select_version_b50_records',
     'get_records',
     'get_player_b50_userinfo',
     'get_plate',

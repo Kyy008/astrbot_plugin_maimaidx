@@ -7,7 +7,6 @@ from ..command.mai_score import (
     ALL_SONGS_B50_COMMAND_PATTERN,
     DIFFICULTY_B50_COMMAND_PATTERN,
 )
-from ..libraries.maimai_best_50 import format_best50_summary
 from ..libraries.maimaidx_play_result import Best50, PlayedResult, Player
 from ..libraries.maimaidx_source import (
     achievement_matches_mode,
@@ -114,24 +113,6 @@ class AchievementBest50CommandTest(unittest.TestCase):
                         re.sub(ACHIEVEMENT_COMMAND_PATTERNS[mode], '', command).strip(),
                         'Alice',
                     )
-
-    def test_summary_labels(self):
-        labels = {
-            'under_s': '(越级)',
-            'near': '(寸)',
-            'lock': '(锁血)',
-        }
-        for mode, label in labels.items():
-            with self.subTest(mode=mode):
-                self.assertEqual(
-                    format_best50_summary(
-                        100,
-                        50,
-                        150,
-                        achievement_mode=mode,
-                    ),
-                    f'{label}B35: 100 + B15: 50 = 150',
-                )
 
 
 class AchievementBest50SourceTest(unittest.IsolatedAsyncioTestCase):
@@ -256,20 +237,6 @@ class DifficultyBest50Test(unittest.TestCase):
                         'Alice',
                     )
 
-    def test_summary_labels(self):
-        labels = ('绿谱', '黄谱', '红谱', '紫谱', '白谱')
-        for difficulty_index, label in enumerate(labels):
-            with self.subTest(difficulty_index=difficulty_index):
-                self.assertEqual(
-                    format_best50_summary(
-                        100,
-                        50,
-                        150,
-                        difficulty_index=difficulty_index,
-                    ),
-                    f'({label})B35: 100 + B15: 50 = 150',
-                )
-
 
 class AllSongsBest50Test(unittest.TestCase):
     def test_selects_top_50_without_old_new_caps(self):
@@ -319,12 +286,6 @@ class AllSongsBest50Test(unittest.TestCase):
                     re.sub(ALL_SONGS_B50_COMMAND_PATTERN, '', command).strip(),
                     'Alice',
                 )
-
-    def test_summary_uses_single_b50_total(self):
-        self.assertEqual(
-            format_best50_summary(100, 50, 150, all_songs=True),
-            '(全曲)B50: 150',
-        )
 
 
 class AllSongsBest50SourceTest(unittest.IsolatedAsyncioTestCase):

@@ -414,6 +414,28 @@ VERSION_MAP = {
     # "": ([DX_VERSION["丸"]], "丸")
 }
 PLATE_CN = {"晓": "暁", "樱": "櫻", "堇": "菫", "辉": "輝", "华": "華"}
+# 版本 B50 可用的版本字；连续多个版本字取并集，合并版本沿用 VERSION_MAP
+B50_VERSION_CHARS = "真超檄橙晓暁桃樱櫻紫堇菫白雪辉輝舞熊华華爽煌宙星祭祝双宴镜彩"
+# 分类 B50 指令别名（小写）→ 曲库分类名
+B50_GENRE_ALIASES: Dict[str, str] = {
+    "舞萌": "舞萌",
+    "maimai": "舞萌",
+    "vocaloid": "niconico & VOCALOID",
+    "v家": "niconico & VOCALOID",
+    "术力口": "niconico & VOCALOID",
+    "ボカロ": "niconico & VOCALOID",
+    "niconico": "niconico & VOCALOID",
+    "东方": "东方Project",
+    "车万": "东方Project",
+    "流行": "流行&动漫",
+    "动漫": "流行&动漫",
+    "二次元": "流行&动漫",
+    "音击中二": "音击&中二节奏",
+    "音击": "音击&中二节奏",
+    "中二": "音击&中二节奏",
+    "其他游戏": "其他游戏",
+    "variety": "其他游戏",
+}
 # 查分器姓名框 / 牌子标题 → plate_version 素材文件名用字
 # 素材包现状：版本字多为日文繁体，但「镜」用简体；后缀「極」为繁体
 PLATE_FILE_NORMALIZE = {

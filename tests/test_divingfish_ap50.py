@@ -14,11 +14,14 @@ from ..libraries.maimaidx_play_result import (
 )
 from ..libraries.maimaidx_source import (
     get_best50,
+    resolve_b50_versions,
     select_ap50_records,
     select_ap_plus50_records,
     select_fitted_b50_records,
+    select_genre_b50_records,
     select_ideal_b50_records,
     select_star_b50_records,
+    select_version_b50_records,
 )
 
 
@@ -304,45 +307,197 @@ class IdealBest50SelectionTest(unittest.TestCase):
         self.assertEqual(best50.sd_total, 995)
 
 
+class GenreBest50SelectionTest(unittest.TestCase):
+    def test_selects_genre_records_with_35_and_15_caps(self):
+        records = []
+        is_new = {}
+        genres = {}
+        for song_id in range(1, 41):
+            records.append(make_record(song_id, 200 + song_id))
+            is_new[song_id] = False
+            genres[song_id] = '东方Project'
+        for song_id in range(101, 121):
+            records.append(make_record(song_id, 300 + song_id))
+            is_new[song_id] = True
+            genres[song_id] = '东方Project'
+        for song_id in range(201, 211):
+            records.append(make_record(song_id, 9999))
+            is_new[song_id] = False
+            genres[song_id] = '舞萌'
+
+        best50 = select_genre_b50_records(
+            records, '东方Project', is_new.get, genres.get
+        )
+
+        self.assertEqual(len(best50.sd), 35)
+        self.assertEqual(len(best50.dx), 15)
+        self.assertEqual(best50.sd[0].song_id, 40)
+        self.assertEqual(best50.dx[0].song_id, 120)
+        self.assertTrue(all(record.song_id < 200 for record in best50.sd))
+        self.assertEqual(best50.sd_total, sum(record.rating for record in best50.sd))
+
+    def test_excludes_utage_and_unknown_songs(self):
+        normal = make_record(1, 100)
+        utage = make_record(100001, 9999)
+        unknown = make_record(2, 8888)
+
+        best50 = select_genre_b50_records(
+            [utage, unknown, normal],
+            '其他游戏',
+            lambda song_id: False if song_id != 2 else None,
+            lambda _song_id: '其他游戏',
+        )
+
+        self.assertEqual([record.song_id for record in best50.sd], [1])
+        self.assertEqual(best50.dx, [])
+
+
+class VersionBest50SelectionTest(unittest.TestCase):
+    def test_resolves_single_merged_and_union_versions(self):
+        self.assertEqual(resolve_b50_versions('辉'), ['maimai FiNALE'])
+        self.assertEqual(resolve_b50_versions('輝'), ['maimai FiNALE'])
+        self.assertEqual(
+            resolve_b50_versions('华'), ['maimai でらっくす']
+        )
+        self.assertEqual(
+            resolve_b50_versions('熊华'), ['maimai でらっくす']
+        )
+        self.assertEqual(
+            resolve_b50_versions('真超檄'),
+            ['maimai PLUS', 'maimai', 'maimai GreeN', 'maimai GreeN PLUS'],
+        )
+        self.assertEqual(
+            resolve_b50_versions('晓樱堇'),
+            ['maimai ORANGE PLUS', 'maimai PiNK PLUS', 'maimai MURASAKi PLUS'],
+        )
+        self.assertEqual(len(resolve_b50_versions('舞')), 13)
+        self.assertIn('maimai FiNALE', resolve_b50_versions('舞'))
+        self.assertNotIn('maimai でらっくす', resolve_b50_versions('舞'))
+        self.assertEqual(
+            resolve_b50_versions('镜彩'),
+            ['maimai でらっくす PRiSM', 'maimai でらっくす PRiSM PLUS'],
+        )
+        with self.assertRaises(ValueError):
+            resolve_b50_versions('丸')
+        with self.assertRaises(ValueError):
+            resolve_b50_versions('')
+
+    def test_selects_top50_across_old_and_new_songs_in_versions(self):
+        records = []
+        versions = {}
+        for song_id in range(1, 31):
+            records.append(make_record(song_id, 100 + song_id))
+            versions[song_id] = 'maimai'
+        for song_id in range(101, 131):
+            records.append(make_record(song_id, 200 + song_id))
+            versions[song_id] = 'maimai GreeN'
+        records.append(make_record(201, 9999))
+        versions[201] = 'maimai FiNALE'
+        records.append(make_record(100001, 9999))
+        versions[100001] = 'maimai'
+
+        best50 = select_version_b50_records(
+            records, ['maimai', 'maimai GreeN'], versions.get
+        )
+        selected = best50.sd + best50.dx
+
+        self.assertEqual(len(selected), 50)
+        self.assertEqual(selected[0].song_id, 130)
+        self.assertNotIn(201, [record.song_id for record in selected])
+        self.assertNotIn(100001, [record.song_id for record in selected])
+        self.assertEqual(
+            best50.sd_total + best50.dx_total,
+            sum(record.rating for record in selected),
+        )
+
+
 class Best50SummaryTest(unittest.TestCase):
-    def test_formats_regular_b50_summary(self):
+    def test_formats_unified_b50_summary_without_mode_label(self):
         self.assertEqual(
             format_best50_summary(100, 50, 150),
             'B35: 100 + B15: 50 = 150',
         )
 
-    def test_formats_ap50_summary(self):
-        self.assertEqual(
-            format_best50_summary(100, 50, 150, all_perfect=True),
-            '(ap)B35: 100 + B15: 50 = 150',
-        )
-
-    def test_formats_dx_star_b50_summary(self):
-        self.assertEqual(
-            format_best50_summary(100, 50, 150, min_dx_star=3),
-            '(3星)B35: 100 + B15: 50 = 150',
-        )
-
-    def test_formats_fitted_b50_summary(self):
-        self.assertEqual(
-            format_best50_summary(100, 50, 150, fitted=True),
-            '(拟合)B35: 100 + B15: 50 = 150',
-        )
-
-    def test_formats_ideal50_summary(self):
-        self.assertEqual(
-            format_best50_summary(100, 50, 150, ideal=True),
-            '(理想)B35: 100 + B15: 50 = 150',
-        )
-
-    def test_formats_ap_plus50_summary(self):
-        self.assertEqual(
-            format_best50_summary(100, 50, 150, all_perfect_plus=True),
-            '(ap+)B35: 100 + B15: 50 = 150',
-        )
-
 
 class Best50RoutingTest(unittest.IsolatedAsyncioTestCase):
+    async def test_divingfish_version_b50_uses_all_dev_records(self):
+        old_record = make_record(1, 100)
+        other_record = make_record(2, 9999)
+        user = UserInfoDev(
+            additional_rating=0,
+            nickname='player',
+            plate=None,
+            rating=15000,
+            username='player',
+            records=[
+                played_to_playinfodev(old_record),
+                played_to_playinfodev(other_record),
+            ],
+        )
+        query_b50 = AsyncMock()
+        query_dev = AsyncMock(return_value=user)
+
+        with (
+            patch(
+                'data.plugins.astrbot_plugin_maimaidx.libraries.maimaidx_source.is_lxns',
+                return_value=False,
+            ),
+            patch(
+                'data.plugins.astrbot_plugin_maimaidx.libraries.maimaidx_source._version_for_song',
+                side_effect=lambda song_id: 'maimai FiNALE' if song_id == 1 else 'maimai',
+            ),
+            patch.object(maiApi, 'token', 'developer-token'),
+            patch.object(maiApi, 'query_user_b50', query_b50),
+            patch.object(maiApi, 'query_user_get_dev', query_dev),
+        ):
+            player, best50 = await get_best50(qqid=123456, version='辉')
+
+        query_dev.assert_awaited_once_with(qqid=123456, username=None)
+        query_b50.assert_not_awaited()
+        self.assertEqual([record.song_id for record in best50.sd + best50.dx], [1])
+        self.assertEqual(player.rating, 100)
+
+    async def test_divingfish_genre_b50_uses_all_dev_records(self):
+        old_record = make_record(1, 100)
+        new_record = make_record(2, 200)
+        other_record = make_record(3, 9999)
+        user = UserInfoDev(
+            additional_rating=0,
+            nickname='player',
+            plate=None,
+            rating=15000,
+            username='player',
+            records=[
+                played_to_playinfodev(old_record),
+                played_to_playinfodev(new_record),
+                played_to_playinfodev(other_record),
+            ],
+        )
+        query_dev = AsyncMock(return_value=user)
+
+        with (
+            patch(
+                'data.plugins.astrbot_plugin_maimaidx.libraries.maimaidx_source.is_lxns',
+                return_value=False,
+            ),
+            patch(
+                'data.plugins.astrbot_plugin_maimaidx.libraries.maimaidx_source._is_new_song',
+                side_effect=lambda song_id: song_id == 2,
+            ),
+            patch(
+                'data.plugins.astrbot_plugin_maimaidx.libraries.maimaidx_source._genre_for_song',
+                side_effect=lambda song_id: '舞萌' if song_id == 3 else '东方Project',
+            ),
+            patch.object(maiApi, 'token', 'developer-token'),
+            patch.object(maiApi, 'query_user_b50', AsyncMock()),
+            patch.object(maiApi, 'query_user_get_dev', query_dev),
+        ):
+            player, best50 = await get_best50(qqid=123456, genre='东方Project')
+
+        self.assertEqual([record.song_id for record in best50.sd], [1])
+        self.assertEqual([record.song_id for record in best50.dx], [2])
+        self.assertEqual(player.rating, 300)
+
     async def test_divingfish_ideal50_uses_all_dev_records(self):
         old_record = make_record(1, 100, fc='fc', achievements=99.25)
         new_record = make_record(2, 200, fc='fc', achievements=100.75)

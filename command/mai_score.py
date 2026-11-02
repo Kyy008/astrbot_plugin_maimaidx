@@ -8,7 +8,14 @@ import astrbot.api.message_components as Comp
 
 from astrbot.api.event import AstrMessageEvent
 
-from .. import ACHIEVEMENT_LIST, RANK_SP, log, is_reply_enabled
+from .. import (
+    ACHIEVEMENT_LIST,
+    B50_GENRE_ALIASES,
+    B50_VERSION_CHARS,
+    RANK_SP,
+    log,
+    is_reply_enabled,
+)
 from .mai_tolerance import parse_chart_request, resolve_song_chart
 from ..command.mai_base import (
     append_theme_source_tip,
@@ -31,6 +38,17 @@ ACHIEVEMENT_COMMAND_PATTERNS = {
 }
 DIFFICULTY_B50_COMMAND_PATTERN = r'^/?[白紫红黄绿]谱(?i:b50)'
 ALL_SONGS_B50_COMMAND_PATTERN = r'^/?(?i:全曲b50|allb50|ab50)'
+GENRE_B50_COMMAND_PATTERN = (
+    r'^/?(?i:('
+    + '|'.join(
+        re.escape(alias)
+        for alias in sorted(B50_GENRE_ALIASES, key=len, reverse=True)
+    )
+    + r')b?50)(?![0-9])'
+)
+VERSION_B50_COMMAND_PATTERN = (
+    rf'^/?([{B50_VERSION_CHARS}]+)代?(?i:b)?50(?![0-9])'
+)
 
 
 async def best50_handler(
@@ -43,8 +61,10 @@ async def best50_handler(
     difficulty_index: int | None = None,
     all_songs: bool = False,
     ideal: bool = False,
+    genre: str | None = None,
+    version: str | None = None,
 ):
-    """普通、筛选、理想及全曲 B50 命令处理。"""
+    """普通、筛选、理想、分类、版本及全曲 B50 命令处理。"""
     # 检查数据是否加载
     if not hasattr(mai, 'total_list') or not mai.total_list:
         yield event.plain_result('歌曲数据未加载，请稍后再试或联系管理员')
@@ -90,6 +110,14 @@ async def best50_handler(
             cleaned = re.sub(
                 r'^/?(?i:理想b50|i50)', '', message_str.strip()
             )
+        elif genre is not None:
+            cleaned = re.sub(
+                GENRE_B50_COMMAND_PATTERN, '', message_str.strip()
+            )
+        elif version is not None:
+            cleaned = re.sub(
+                VERSION_B50_COMMAND_PATTERN, '', message_str.strip()
+            )
         elif min_dx_star is not None:
             cleaned = re.sub(
                 r'^/?[一二三四五]星(?i:b50)', '', message_str.strip()
@@ -114,6 +142,8 @@ async def best50_handler(
         difficulty_index=difficulty_index,
         all_songs=all_songs,
         ideal=ideal,
+        genre=genre,
+        version=version,
     )
     chain: List[Any] = convert_message_segment_to_chain(result)
     append_theme_source_tip(chain, result)

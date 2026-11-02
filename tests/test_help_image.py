@@ -158,6 +158,9 @@ class HelpCatalogueTest(unittest.TestCase):
             ('all_songs_best50', '全曲b50'), ('dx_star_best50', '五星b50'),
             ('ap_plus50', '理论b50'), ('fitted_best50', '拟合b50'),
             ('ideal_best50', '理想b50'), ('ideal_best50', 'i50'),
+            ('genre_best50', '东方50'), ('genre_best50', 'v家b50'),
+            ('version_best50', '辉50'), ('version_best50', '白代50'),
+            ('version_best50', '真超檄50'),
         )
         for handler, example in examples:
             with self.subTest(handler=handler, example=example):
