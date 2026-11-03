@@ -32,12 +32,12 @@ from ..libraries.maimaidx_player_score import music_global_data
 
 
 ACHIEVEMENT_COMMAND_PATTERNS = {
-    'under_s': r'^/?(?i:越级b50|越级50|a50)',
-    'near': r'^/?(?i:寸b50|寸50|c50)',
-    'lock': r'^/?(?i:锁血b50|锁血50|s50)',
+    'under_s': r'^/?越级(?i:b)?50',
+    'near': r'^/?寸(?i:b)?50',
+    'lock': r'^/?锁血(?i:b)?50',
 }
 DIFFICULTY_B50_COMMAND_PATTERN = r'^/?[白紫红黄绿]谱(?i:b50)'
-ALL_SONGS_B50_COMMAND_PATTERN = r'^/?(?i:全曲b50|allb50|ab50)'
+ALL_SONGS_B50_COMMAND_PATTERN = r'^/?全曲(?i:b50)'
 GENRE_B50_COMMAND_PATTERN = (
     r'^/?(?i:('
     + '|'.join(
@@ -104,11 +104,11 @@ async def best50_handler(
             )
         elif fitted:
             cleaned = re.sub(
-                r'^/?(?i:拟合b50|f50)', '', message_str.strip()
+                r'^/?拟合(?i:b50)', '', message_str.strip()
             )
         elif ideal:
             cleaned = re.sub(
-                r'^/?(?i:理想b50|i50)', '', message_str.strip()
+                r'^/?理想(?i:b50)', '', message_str.strip()
             )
         elif genre is not None:
             cleaned = re.sub(

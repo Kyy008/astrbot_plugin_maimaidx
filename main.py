@@ -685,9 +685,9 @@ class MaimaiDXPlugin(Star):
         async for result in best50_handler(event):
             yield result
 
-    @filter.regex(r'^/?(?i:全曲b50|allb50|ab50)\s*(.*)$')
+    @filter.regex(r'^/?全曲(?i:b50)\s*(.*)$')
     async def all_songs_best50(self, event: AstrMessageEvent):
-        """全曲b50/allb50/ab50：不分新旧曲查询 Rating 最高的 50 项。"""
+        """全曲b50：不分新旧曲查询 Rating 最高的 50 项。"""
         group_id = event.message_obj.group_id
         if group_id and not self._is_group_enabled(str(group_id)):
             return
@@ -743,9 +743,9 @@ class MaimaiDXPlugin(Star):
         ):
             yield result
 
-    @filter.regex(r'^/?(?i:拟合b50|f50)\s*(.*)$')
+    @filter.regex(r'^/?拟合(?i:b50)\s*(.*)$')
     async def fitted_best50(self, event: AstrMessageEvent):
-        """拟合b50/f50：按谱面拟合定数重算 Rating 后生成 Best 50"""
+        """拟合b50：按谱面拟合定数重算 Rating 后生成 Best 50"""
         group_id = event.message_obj.group_id
         if group_id and not self._is_group_enabled(str(group_id)):
             return
@@ -753,9 +753,9 @@ class MaimaiDXPlugin(Star):
         async for result in best50_handler(event, fitted=True):
             yield result
 
-    @filter.regex(r'^/?(?i:理想b50|i50)\s*(.*)$')
+    @filter.regex(r'^/?理想(?i:b50)\s*(.*)$')
     async def ideal_best50(self, event: AstrMessageEvent):
-        """理想b50/i50：将玩家每个已有成绩提升一个评价档位后生成 Best 50"""
+        """理想b50：将玩家每个已有成绩提升一个评价档位后生成 Best 50"""
         group_id = event.message_obj.group_id
         if group_id and not self._is_group_enabled(str(group_id)):
             return
@@ -802,9 +802,9 @@ class MaimaiDXPlugin(Star):
         async for result in best50_handler(event, all_perfect_plus=True):
             yield result
 
-    @filter.regex(r'^/?(?i:越级b50|越级50|a50)\s*(.*)$')
+    @filter.regex(r'^/?越级(?i:b)?50\s*(.*)$')
     async def under_s_best50(self, event: AstrMessageEvent):
-        """越级50/a50：查询达成率低于 97% 的 Best 50"""
+        """越级50/越级b50：查询达成率低于 97% 的 Best 50"""
         group_id = event.message_obj.group_id
         if group_id and not self._is_group_enabled(str(group_id)):
             return
@@ -812,9 +812,9 @@ class MaimaiDXPlugin(Star):
         async for result in best50_handler(event, achievement_mode='under_s'):
             yield result
 
-    @filter.regex(r'^/?(?i:寸b50|寸50|c50)\s*(.*)$')
+    @filter.regex(r'^/?寸(?i:b)?50\s*(.*)$')
     async def near_best50(self, event: AstrMessageEvent):
-        """寸50/c50：查询略低于 SSS 或 SSS+ 的 Best 50"""
+        """寸50/寸b50：查询略低于 SSS 或 SSS+ 的 Best 50"""
         group_id = event.message_obj.group_id
         if group_id and not self._is_group_enabled(str(group_id)):
             return
@@ -822,9 +822,9 @@ class MaimaiDXPlugin(Star):
         async for result in best50_handler(event, achievement_mode='near'):
             yield result
 
-    @filter.regex(r'^/?(?i:锁血b50|锁血50|s50)\s*(.*)$')
+    @filter.regex(r'^/?锁血(?i:b)?50\s*(.*)$')
     async def lock_best50(self, event: AstrMessageEvent):
-        """锁血50/s50：查询略高于 SSS 或 SSS+ 的 Best 50"""
+        """锁血50/锁血b50：查询略高于 SSS 或 SSS+ 的 Best 50"""
         group_id = event.message_obj.group_id
         if group_id and not self._is_group_enabled(str(group_id)):
             return

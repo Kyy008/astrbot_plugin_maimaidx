@@ -157,7 +157,7 @@ class HelpCatalogueTest(unittest.TestCase):
             ('arcade_query_person', '某机厅几人'), ('arcade_query_multiple', '机厅几人'), ('toggle_arcade', '开启排卡'),
             ('all_songs_best50', '全曲b50'), ('dx_star_best50', '五星b50'),
             ('ap_plus50', '理论b50'), ('fitted_best50', '拟合b50'),
-            ('ideal_best50', '理想b50'), ('ideal_best50', 'i50'),
+            ('ideal_best50', '理想b50'),
             ('genre_best50', '东方50'), ('genre_best50', 'v家b50'),
             ('version_best50', '辉50'), ('version_best50', '白代50'),
             ('version_best50', '真超檄50'),
@@ -167,6 +167,23 @@ class HelpCatalogueTest(unittest.TestCase):
                 kind, pattern = commands[handler]
                 self.assertEqual(kind, 'regex')
                 self.assertIsNotNone(re.match(pattern, example))
+
+
+    def test_removed_english_b50_aliases_no_longer_trigger(self):
+        commands = command_decorators()
+        for handler, aliases in (
+            ('all_songs_best50', ('ab50', 'AB50', 'allb50', 'ALLB50')),
+            ('fitted_best50', ('f50', 'F50')),
+            ('ideal_best50', ('i50', 'I50')),
+            ('under_s_best50', ('a50', 'A50')),
+            ('near_best50', ('c50', 'C50')),
+            ('lock_best50', ('s50', 'S50')),
+        ):
+            _, pattern = commands[handler]
+            for alias in aliases:
+                for text in (alias, f'/{alias}', f'{alias} Alice'):
+                    with self.subTest(handler=handler, text=text):
+                        self.assertIsNone(re.match(pattern, text))
 
 
 class HelpRenderingTest(unittest.TestCase):

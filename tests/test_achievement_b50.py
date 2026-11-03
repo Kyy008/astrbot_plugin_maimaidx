@@ -102,9 +102,9 @@ class AchievementBest50SelectionTest(unittest.TestCase):
 class AchievementBest50CommandTest(unittest.TestCase):
     def test_command_aliases_strip_to_username(self):
         cases = {
-            'under_s': ('越级50 Alice', '越级b50 Alice', '/A50 Alice'),
-            'near': ('寸50 Alice', '寸b50 Alice', '/C50 Alice'),
-            'lock': ('锁血50 Alice', '锁血b50 Alice', '/S50 Alice'),
+            'under_s': ('越级50 Alice', '越级b50 Alice', '/越级B50 Alice'),
+            'near': ('寸50 Alice', '寸b50 Alice', '/寸B50 Alice'),
+            'lock': ('锁血50 Alice', '锁血b50 Alice', '/锁血B50 Alice'),
         }
         for mode, commands in cases.items():
             for command in commands:
@@ -278,8 +278,6 @@ class AllSongsBest50Test(unittest.TestCase):
         for command in (
             '全曲b50 Alice',
             '/全曲B50 Alice',
-            'allb50 Alice',
-            '/AB50 Alice',
         ):
             with self.subTest(command=command):
                 self.assertEqual(
